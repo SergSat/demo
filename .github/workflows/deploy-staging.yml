@@ -1,0 +1,43 @@
+name: Deploy Backend to Production - DigitalOcean
+
+on:
+  push:
+    branches:
+      - dev
+
+env:
+  SERVER_IP: 46.101.170.59
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.1
+        with:
+          ssh-private-key: ${{ secrets.PRIVATE_SSH_KEY }}
+
+      - name: Deploy to server and restart docker
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{env.SERVER_IP}} << 'EOF'
+            set -e
+        
+            echo "Navigating to /var/www/decoskin/api"
+            cd /var/www/decoskin/api
+        
+            echo "Checking out dev branch"
+            git checkout dev
+        
+            echo "Pulling latest changes from origin/dev"
+            git pull origin dev
+          
+            echo "Starting containers"
+            docker-compose -f docker-compose.yml start || true
+          
+            echo "Running composer install"
+            docker-compose exec -T app composer install --optimize-autoloader
+          EOF
