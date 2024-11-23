@@ -12,5 +12,6 @@ Route::get('/user', function (Request $request) {
 
 Route::get('/token', [TokenController::class, 'getToken']);
 
-Route::apiResource('users', UserController::class)->only(['index', 'show', 'store']);
+Route::apiResource('users', UserController::class)->only(['index', 'show'])->withoutMiddleware(['auth.registration_token']);;
+Route::apiResource('users', UserController::class)->only(['store'])->middleware('auth.registration_token');
 Route::apiResource('positions', PositionController::class)->only(['index']);

@@ -19,6 +19,7 @@ use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
+use App\Services\ImageService;
 
 class RegisteredUserController extends Controller
 {
@@ -61,8 +62,16 @@ class RegisteredUserController extends Controller
 
         $position = Position::findOrFail($validated['position_id']);
 
-        $photoPath = $this->generateResizedPhoto($request->file('photo'));
+        $imageManager = new ImageManager(new Driver());
+        $imageService = new ImageService($imageManager);
+        $photoPath = $imageService->uploadResizedPhotoToStorage(
+            $request->file('photo'),
+            100,
+            100,
+            'users'
+        );
 
+        // Create the user
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],

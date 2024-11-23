@@ -4,11 +4,16 @@ namespace App\Http\Controllers\API\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\API\IndexUserRequest;
-use App\Http\Requests\API\ShowUserRequest;
+use App\Http\Requests\API\StoreUserRequest;
 use App\Http\Resources\UserCollection;
 use App\Http\Resources\UserResource;
+use App\Models\Position;
 use App\Models\User;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class UserController extends Controller
 {
@@ -27,9 +32,37 @@ class UserController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
+        $validated = $request->validated();
 
+        $position = Position::findOrFail($validated['position_id']);
+
+        $imageManager = new ImageManager(new Driver());
+        $imageService = new ImageService($imageManager);
+        $photoPath = $imageService->uploadResizedPhotoToStorage(
+            $request->file('photo'),
+            100,
+            100,
+            'users'
+        );
+
+        // Create the user
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'position' => $position->name,
+            'position_id' => $position->id,
+            'photo' => $photoPath,
+            'phone' => $validated['phone'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'id' => $user->id,
+            'message' => 'New user successfully registered',
+        ], 201);
     }
 
     /**
@@ -39,19 +72,21 @@ class UserController extends Controller
     {
         $request->merge(['id' => $id]);
 
-        // Валидация
+        // Validate the request
         $validated = $request->validate([
-            'id' => ['required', 'integer'], // Условия проверки
+            'id' => ['required', 'integer'],
         ]);
 
-        // Поиск пользователя
         $user = User::find($validated['id']);
 
         if (!$user) {
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        return new UserResource($user);
+        return response()->json([
+            'success' => true,
+            'user' => new UserResource($user),
+        ]);
     }
 
     /**

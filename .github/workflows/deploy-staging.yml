@@ -3,7 +3,7 @@ name: Deploy Backend to Production - DigitalOcean
 on:
   push:
     branches:
-      - dev
+      - main
 
 env:
   SERVER_IP: 46.101.170.59
@@ -26,14 +26,14 @@ jobs:
           ssh -o StrictHostKeyChecking=no root@${{env.SERVER_IP}} << 'EOF'
             set -e
         
-            echo "Navigating to /var/www/decoskin/api"
-            cd /var/www/decoskin/api
+            echo "Navigating to /var/www/demo"
+            cd /var/www/demo
         
             echo "Checking out dev branch"
-            git checkout dev
+            git checkout main
         
-            echo "Pulling latest changes from origin/dev"
-            git pull origin dev
+            echo "Pulling latest changes from origin/main"
+            git pull origin main
           
             echo "Starting containers"
             docker-compose -f docker-compose.yml start || true
